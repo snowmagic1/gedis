@@ -3,20 +3,24 @@ package server
 import (
 	"bufio"
 	"fmt"
+	"log"
 	"net"
+	"strconv"
 
 	"github.com/snowmagic1/gedis/utils"
 )
 
 type Client struct {
+	app    *App
 	conn   net.Conn
 	reader *utils.RespReader
 	writer *responseWriter
 	args   [][]byte
 }
 
-func NewClient(conn net.Conn) *Client {
+func NewClient(app *App, conn net.Conn) *Client {
 	c := &Client{
+		app:  app,
 		conn: conn,
 	}
 
@@ -30,7 +34,7 @@ func NewClient(conn net.Conn) *Client {
 	return c
 }
 
-func (c *Client) Run() {
+func (c *Client) ProcessRequest() {
 	req, err := c.reader.ParseRequest()
 	if err != nil {
 		fmt.Println("failed to read, ", err)
@@ -39,6 +43,11 @@ func (c *Client) Run() {
 
 	cmd := string(req[0])
 	c.args = req[1:]
+
+	log.Printf("[%v]\n", cmd)
+	for _, arg := range c.args {
+		log.Printf("  %v\n", string(arg))
+	}
 
 	if handler := registeredCmds[cmd]; handler == nil {
 		err = ErrNotFound
@@ -61,6 +70,19 @@ func (rw *responseWriter) writeError(err error) {
 	if err != nil {
 		rw.b.Write([]byte(err.Error()))
 	}
+	rw.b.Write(Delims)
+}
+
+func (rw *responseWriter) writeBulk(b []byte) {
+	rw.b.WriteByte('$')
+	if b == nil {
+		rw.b.Write(NullBulk)
+	} else {
+		rw.b.Write([]byte(strconv.Itoa(len(b))))
+		rw.b.Write(Delims)
+		rw.b.Write(b)
+	}
+
 	rw.b.Write(Delims)
 }
 

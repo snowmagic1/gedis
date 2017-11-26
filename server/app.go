@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net"
 	"os"
+
+	"github.com/syndtr/goleveldb/leveldb"
 )
 
 const (
@@ -12,7 +14,18 @@ const (
 	CONN_TYPE = "tcp"
 )
 
-func Start() {
+type App struct {
+	db *leveldb.DB
+}
+
+func (app *App) Start() error {
+
+	db, err := leveldb.OpenFile("./testdb", nil)
+	if err != nil {
+		return err
+	}
+	app.db = db
+
 	// Listen for incoming connections.
 	l, err := net.Listen(CONN_TYPE, CONN_HOST+":"+CONN_PORT)
 	if err != nil {
@@ -30,12 +43,14 @@ func Start() {
 			os.Exit(1)
 		}
 		// Handle connections in a new goroutine.
-		go handleRequest(conn)
+		go app.handleRequest(conn)
 	}
 }
 
 // Handles incoming requests.
-func handleRequest(conn net.Conn) {
-	client := NewClient(conn)
-	client.Run()
+func (app *App) handleRequest(conn net.Conn) {
+	client := NewClient(app, conn)
+	for {
+		client.ProcessRequest()
+	}
 }

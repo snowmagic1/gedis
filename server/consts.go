@@ -1,5 +1,6 @@
 package server
 
 var (
-	Delims = []byte("\r\n")
+	Delims   = []byte("\r\n")
+	NullBulk = []byte("-1")
 )
