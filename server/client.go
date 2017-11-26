@@ -6,6 +6,7 @@ import (
 	"log"
 	"net"
 	"strconv"
+	"strings"
 
 	"github.com/snowmagic1/gedis/utils"
 )
@@ -34,14 +35,14 @@ func NewClient(app *App, conn net.Conn) *Client {
 	return c
 }
 
-func (c *Client) ProcessRequest() {
+func (c *Client) ProcessRequest() error {
 	req, err := c.reader.ParseRequest()
 	if err != nil {
 		fmt.Println("failed to read, ", err)
-		return
+		return err
 	}
 
-	cmd := string(req[0])
+	cmd := strings.ToLower(string(req[0]))
 	c.args = req[1:]
 
 	log.Printf("[%v]\n", cmd)
@@ -59,6 +60,8 @@ func (c *Client) ProcessRequest() {
 		c.writer.writeError(err)
 	}
 	c.writer.flush()
+
+	return nil
 }
 
 type responseWriter struct {
@@ -83,6 +86,12 @@ func (rw *responseWriter) writeBulk(b []byte) {
 		rw.b.Write(b)
 	}
 
+	rw.b.Write(Delims)
+}
+
+func (rw *responseWriter) writeStatus(status string) {
+	rw.b.WriteByte('+')
+	rw.b.Write([]byte(status))
 	rw.b.Write(Delims)
 }
 

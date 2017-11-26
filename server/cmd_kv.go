@@ -20,6 +20,21 @@ func getCmdhandler(c *Client) error {
 	return nil
 }
 
+func setCmdhandler(c *Client) error {
+	args := c.args
+	if len(args) != 2 {
+		return ErrCmdParams
+	}
+
+	err := c.app.db.Put(args[0], args[1], nil)
+	if err == nil {
+		c.writer.writeStatus(OK)
+	}
+
+	return nil
+}
+
 func init() {
 	RegisterCmdHandler("Get", getCmdhandler)
+	RegisterCmdHandler("Set", setCmdhandler)
 }

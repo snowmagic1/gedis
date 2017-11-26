@@ -51,6 +51,9 @@ func (app *App) Start() error {
 func (app *App) handleRequest(conn net.Conn) {
 	client := NewClient(app, conn)
 	for {
-		client.ProcessRequest()
+		err := client.ProcessRequest()
+		if err != nil {
+			break
+		}
 	}
 }
